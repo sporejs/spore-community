@@ -1,3 +1,99 @@
-export default function build(argv: any) {
-  console.log('Here', argv);
+import webpack from 'webpack';
+import path from 'path';
+const TerserPlugin = require('terser-webpack-plugin');
+
+interface Argv {
+  entry: string;
+  output?: string;
+  target: 'web' | 'node';
+  mode: 'development' | 'production';
+  watch: boolean;
+}
+
+export default function build(argv: Argv) {
+  const entry = path.resolve(argv.entry);
+  const output = argv.output && path.resolve(argv.output);
+  const compiler = webpack({
+    mode: argv.mode,
+    target: argv.target,
+    context: path.resolve('.'),
+    output: output
+      ? {
+          path: path.dirname(output),
+          filename: path.basename(output),
+        }
+      : {
+          path: path.resolve('./dist'),
+          filename: '[name].js',
+        },
+    entry: {
+      index: `@sporejs/loader/entry!${entry}`,
+    },
+    resolve: {
+      extensions: ['.ts', '.js', '.spore'],
+    },
+    resolveLoader: {
+      extensions: ['.js'],
+    },
+    externals:
+      argv.target === 'node'
+        ? function(context, request, callback: any) {
+            // node target shouldn't try to resolve built-in packages,
+            // and doesn't needs to pack with any dependencies
+            if (
+              !/^[.\/]/.test(request) &&
+              !path.isAbsolute(request) &&
+              !request.startsWith('@sporejs')
+            ) {
+              callback(null, 'commonjs ' + request);
+              return;
+            }
+            callback();
+          }
+        : // web target should pack every dependencies
+          undefined,
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          loader: 'ts-loader',
+          options: {
+            compilerOptions: {
+              target: 'esnext',
+              module: 'esnext',
+              esModuleInterop: true,
+            },
+            onlyCompileBundledFiles: true,
+          },
+        },
+        {
+          test: /\.spore$/,
+          loader: '@sporejs/loader',
+          options: {
+            hotLoadLoader: false,
+          },
+        },
+      ],
+    },
+    optimization: {
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            toplevel: true,
+            compress: {
+              unsafe: true,
+              passes: 3,
+            },
+          },
+        }),
+      ],
+    },
+    plugins: [new webpack.ProgressPlugin()],
+  });
+
+  if (argv.watch) {
+    compiler.watch({}, (err, stats) => {});
+  } else {
+    compiler.run((err, stats) => {});
+  }
 }

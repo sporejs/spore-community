@@ -10,7 +10,9 @@
   },
   "scripts": {
     "start": "sporec",
-    "dev:webpack": "webpack --mode=development"
+    "build:dev:webpack": "webpack --mode=development",
+    "build:dev": "sporec src/index.spore -o index.js",
+    "build": "sporec src/index.spore -o index.js --mode=production"
   },
   "dependencies": {
     "@sporejs/core": "^1.0.0",
