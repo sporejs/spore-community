@@ -92,8 +92,22 @@ export default function build(argv: Argv) {
   });
 
   if (argv.watch) {
-    compiler.watch({}, (err, stats) => {});
+    compiler.watch({}, (err, stats) => {
+      console.log(
+        stats.toString({
+          chunks: false, // Makes the build much quieter
+          colors: true, // Shows colors in the console
+        }),
+      );
+    });
   } else {
-    compiler.run((err, stats) => {});
+    compiler.run((err, stats) => {
+      console.log(
+        stats.toString({
+          chunks: false, // Makes the build much quieter
+          colors: true, // Shows colors in the console
+        }),
+      );
+    });
   }
 }
