@@ -1,0 +1,16 @@
+{
+  "name": "@sporejs/core",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/comment-json": "^1.1.1",
+    "@types/enhanced-resolve": "^3.0.6",
+    "@types/node": "^12.7.5",
+    "comment-json": "^2.1.0",
+    "enhanced-resolve": "^4.1.0",
+    "tslib": "^1.10.0"
+  }
+}

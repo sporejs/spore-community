@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "workspaces": [
+    "packages/**/*"
+  ],
+  "scripts": {
+    "watch:tsc": "tsc -w",
+    "build:tsc": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^3.6.3",
+    "webpack": "^4.40.2"
+  }
+}

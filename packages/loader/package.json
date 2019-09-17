@@ -1,0 +1,19 @@
+{
+  "name": "@sporejs/loader",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/loader-utils": "^1.1.3",
+    "@types/schema-utils": "^1.0.0",
+    "@types/webpack": "^4.39.1",
+    "loader-utils": "^1.2.3",
+    "schema-utils": "^2.2.0",
+    "tslib": "^1.10.0"
+  },
+  "peerDependencies": {
+    "webpack": "^4.40.2"
+  }
+}

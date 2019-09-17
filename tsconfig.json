@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "declaration": true,
+    "moduleResolution": "node",
+    "lib": ["es5", "es2015", "dom"],
+    "jsx": "react",
+    "strict": true,
+    "importHelpers": true,
+    "allowJs": false,
+    "esModuleInterop": true
+  },
+  "include": ["./packages/**/*"]
+}
