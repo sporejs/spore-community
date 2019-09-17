@@ -17,11 +17,15 @@ export default function loader(this: loader.LoaderContext, source: string) {
   const callback = this.async();
   const options = getOptions(this) || {};
 
+  if (options.hotLoadLoader == null) {
+    options.hotLoadLoader = this.mode === 'development';
+  }
+
   validateSchema(optionSchema, options, '@sporejs/loader');
 
   compile(this.resource, source, {
     context: this.context,
-    hotLoadLoader: this.mode === 'development',
+    hotLoadLoader: options.hotLoadLoader,
     addDependency: file => {
       this.addDependency(file);
     },

@@ -1,0 +1,13 @@
+{
+  "name": "@sporejs/cli",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/node": "^12.7.5",
+    "tslib": "^1.10.0",
+    "yargs": "^14.0.0"
+  }
+}

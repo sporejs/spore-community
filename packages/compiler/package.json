@@ -1,0 +1,25 @@
+{
+  "name": "@sporejs/compiler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "bin": {
+    "sporec": "./bin/sporec"
+  },
+  "scripts": {
+    "start": "sporec",
+    "dev:webpack": "webpack --mode=development"
+  },
+  "dependencies": {
+    "@sporejs/core": "^1.0.0",
+    "@sporejs/loader": "^1.0.0",
+    "webpack": "^4.40.2"
+  },
+  "devDependencies": {
+    "terser-webpack-plugin": "^2.1.0",
+    "ts-loader": "^6.1.0",
+    "webpack-cli": "^3.3.9"
+  }
+}

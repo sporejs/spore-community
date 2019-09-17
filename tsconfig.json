@@ -11,5 +11,9 @@
     "allowJs": false,
     "esModuleInterop": true
   },
-  "include": ["./packages/**/*"]
+  "include": [
+    "./packages/**/loaders/*",
+    "./packages/core/**/*",
+    "./packages/loader/**/*"
+  ]
 }

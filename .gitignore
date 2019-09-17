@@ -1,7 +1,6 @@
-*.js
+/packages/**/*.js
+/packages/**/*.d.ts
+!webpack.config.js
 node_modules
 yarn-error*.log
-dist
 .vscode
-*.d.ts
-experiments

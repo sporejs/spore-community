@@ -204,7 +204,7 @@ class SporeCompiler {
         // run loader on module initialization.
         const loaderVar =
           this.importPrefix +
-          (await this.addImport(schemaObj.loader, schemaPath));
+          (await this.addImport(schemaObj.loader, schemaContext));
         defineCodeFor(
           obj,
           `eval(${loaderVar}(${JSON.stringify(obj)}, ${JSON.stringify(
