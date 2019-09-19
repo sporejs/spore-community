@@ -30,3 +30,7 @@ cd samples/cli/hello
 yarn build
 yarn start
 ```
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
