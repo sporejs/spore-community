@@ -1,5 +1,5 @@
 {
-  "name": "samples-cli-hello",
+  "name": "samples-http-simple",
   "version": "1.0.0",
   "main": "index.js",
   "repository": "git@github.com:sporejs/spore-community.git",
@@ -14,6 +14,7 @@
     "@sporejs/core": "^1.0.0",
     "@sporejs/loader": "^1.0.0",
     "@sporejs/cli": "^1.0.0",
+    "@sporejs/http": "^1.0.0",
     "@sporejs/compiler": "^1.0.0"
   }
 }
