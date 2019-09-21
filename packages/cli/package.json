@@ -7,6 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^12.7.5",
+    "@types/yargs": "^13.0.2",
     "tslib": "^1.10.0",
     "yargs": "^14.0.0"
   }

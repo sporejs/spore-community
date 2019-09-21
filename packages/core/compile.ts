@@ -8,6 +8,7 @@ import {
 } from 'enhanced-resolve';
 import renderObject, { SYMBOL_CODE } from './lib/renderObject';
 import Resolver = require('enhanced-resolve/lib/Resolver');
+import loadFactory from './loadFactory';
 
 export interface CompileOptions {
   // Directory that contains current file.
@@ -106,7 +107,7 @@ class SporeCompiler {
   }
 
   // Resolve a schema path to get it's file path
-  resolveSchema(request: string, basePath: string = this.options.context) {
+  resolveFile(request: string, basePath: string = this.options.context) {
     return this.options.resolve(basePath, request);
   }
 
@@ -178,61 +179,34 @@ class SporeCompiler {
     }
 
     if (obj.$type !== undefined) {
-      const schemaPath = await this.resolveSchema(obj.$type);
+      const schemaPath = await this.resolveFile(obj.$type);
       const schemaContext = this.options.dirname(schemaPath);
       const schemaObj = parse(await this.options.readFile(schemaPath, 'utf-8'));
 
-      if (!schemaObj.loader) {
+      if (!schemaObj.factory) {
         // schema has no loader.
         // make the exported schema undefined.
         defineCodeFor(obj, 'undefined');
         return;
       }
 
-      let loaderImports: { [key: string]: string } = {};
+      const factoryPath = await this.resolveFile(
+        schemaObj.factory,
+        schemaContext,
+      );
+      const factoryContext = this.options.dirname(factoryPath);
 
-      if (schemaObj.loaderImports) {
-        for (let [key, mod] of Object.entries(schemaObj.loaderImports as {
-          [key: string]: string;
-        })) {
-          loaderImports[key] =
-            this.importPrefix + (await this.addImport(mod, schemaContext));
-        }
+      // TODO: We may needs to cache factory here.
+      const [factory, imports] = loadFactory(
+        await this.options.readFile(factoryPath, 'utf-8'),
+      );
+
+      const importSymbols: string[] = [];
+      for (const mod of imports) {
+        importSymbols.push(await this.addImport(mod, factoryContext));
       }
 
-      if (this.options.hotLoadLoader) {
-        // run loader on module initialization.
-        const loaderVar =
-          this.importPrefix +
-          (await this.addImport(schemaObj.loader, schemaContext));
-        defineCodeFor(
-          obj,
-          `eval(${loaderVar}(${JSON.stringify(obj)}, ${JSON.stringify(
-            loaderImports,
-          )}))`,
-        );
-      } else {
-        // Run loader on compiler side.
-        // Should use javascript version instead of typescript version.
-        const m = /^([^#]*)(?:#(\w*|\*))?$/.exec(schemaObj.loader);
-        if (!m) {
-          throw new Error(
-            `Invalid loader path : ${schemaObj.loader} of schema : ${schemaPath}`,
-          );
-        }
-        let exportName = m[2] || 'default';
-
-        const loaderPath = (await this.resolveModule(
-          m[1],
-          schemaContext,
-        )).replace(/\.tsx?$/, '.js');
-
-        if (exportName === '*') {
-          defineCodeFor(obj, require(loaderPath)(obj, loaderImports));
-          return;
-        }
-        defineCodeFor(obj, require(loaderPath)[exportName](obj, loaderImports));
-      }
+      defineCodeFor(obj, factory(obj, importSymbols));
     }
   }
 
@@ -296,7 +270,7 @@ class SporeCompiler {
       return `export default ${renderObject(this.source)}`;
     }
 
-    // Step1: load objects;
+    // Step1: load & compile objects, include imports and loaders;
     if (this.source && typeof this.source === 'object') {
       await this.visitImports(this.source);
     }

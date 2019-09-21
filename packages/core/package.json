@@ -9,8 +9,11 @@
     "@types/comment-json": "^1.1.1",
     "@types/enhanced-resolve": "^3.0.6",
     "@types/node": "^12.7.5",
+    "ast-types": "^0.13.2",
+    "babylon": "^6.18.0",
     "comment-json": "^2.1.0",
     "enhanced-resolve": "^4.1.0",
+    "recast": "^0.18.2",
     "tslib": "^1.10.0"
   }
 }
