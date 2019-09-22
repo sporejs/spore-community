@@ -9,7 +9,7 @@ import {
   builders as b,
   eachField,
 } from 'ast-types';
-const v8 = require('v8');
+import renderObject, { SYMBOL_CODE } from './lib/renderObject';
 const parser = require('recast/parsers/babel');
 const { def } = Type;
 
@@ -18,6 +18,11 @@ def('ImportedIdentifier')
   .bases('Expression')
   .build('id')
   .field('id', builtInTypes.number);
+
+def('DataReference')
+  .bases('Expression')
+  .build('path')
+  .field('path', builtInTypes.string.arrayOf());
 
 finalize();
 
@@ -51,6 +56,8 @@ function visitImports(ast: ASTNode): [string[], ASTNode] {
     },
   ];
   const importedSymbols: any = {};
+  let exportFunction: ASTNode | null = null;
+  let dataArgName: string | null = null;
 
   function pushStack() {
     let knownIdentifiers: any = {};
@@ -148,6 +155,12 @@ function visitImports(ast: ASTNode): [string[], ASTNode] {
         return false;
       }
 
+      if (self.name === dataArgName) {
+        // This is data argument.
+        path.replace(b.dataReference([]));
+        return false;
+      }
+
       const id = importedSymbols[self.name];
       if (id != null) {
         path.replace(b.importedIdentifier(id));
@@ -174,6 +187,11 @@ function visitImports(ast: ASTNode): [string[], ASTNode] {
       popStack();
     },
     visitFunction(path) {
+      if (exportFunction === path.node) {
+        // special process data param.
+        this.traverse(path);
+        return;
+      }
       getIdentifierFromDefinition(path.value.id, true);
       pushStack();
       for (const item of path.value.params) {
@@ -186,16 +204,6 @@ function visitImports(ast: ASTNode): [string[], ASTNode] {
       this.traverse(path);
       popStack();
     },
-  });
-  return [imports, ast];
-}
-
-function getExportedFunction(node: ASTNode): [ASTNode, string] {
-  let ret: ASTNode | null = null;
-  let retName: string | null = null;
-  let exportFunction: ASTNode | null = null;
-
-  visit(node, {
     visitExportDefaultDeclaration(path) {
       const factory = path.node.declaration;
       if (!n.FunctionDeclaration.check(factory)) {
@@ -208,20 +216,20 @@ function getExportedFunction(node: ASTNode): [ASTNode, string] {
       if (!n.Identifier.check(param)) {
         throw new Error('Destructing factory param was not implemented yet.');
       }
-      retName = param.name;
-      exportFunction = path.node;
-      return false;
+      exportFunction = path.node.declaration;
+      dataArgName = param.name;
+      this.traverse(path);
     },
   });
 
+  let returnedValue: ASTNode | null = null;
   visit(exportFunction!, {
     visitReturnStatement(path) {
-      ret = path.node.argument;
+      returnedValue = path.node.argument;
       return false;
     },
   });
-
-  return [ret!, retName!];
+  return [imports, returnedValue!];
 }
 
 function clone(node: ASTNode): ASTNode {
@@ -253,6 +261,55 @@ function replaceImports(ast: ASTNode, imports: string[]): ASTNode {
   } as any);
 }
 
+function replaceData(ast: ASTNode, data: any): ASTNode {
+  // phase 1: optimize data reference
+  ast = visit(ast, {
+    visitMemberExpression(path) {
+      this.traverse(path);
+      if (
+        (path.node.object as any).type === 'DataReference' &&
+        n.Identifier.check(path.node.property)
+      ) {
+        path.replace(
+          b.dataReference([
+            ...(path.node.object as any).path,
+            path.node.property.name,
+          ]),
+        );
+      }
+    },
+  });
+
+  // phase 2: optimize expressions
+  ast = visit(ast, {
+    visitExpression(path) {
+      this.traverse(path);
+    },
+  });
+
+  // phase 4: load datas.
+  ast = visit(ast, {
+    visitDataReference(path: any) {
+      let curr = data;
+      const rest = [];
+      for (const key of path.node.path) {
+        if (curr[SYMBOL_CODE]) {
+          rest.push(key);
+        } else {
+          curr = curr[key];
+        }
+      }
+      path.replace(
+        b.identifier(
+          `(${renderObject(curr)})` + rest.map(v => `.${v}`).join(''),
+        ),
+      );
+      return false;
+    },
+  } as any);
+  return ast;
+}
+
 export default function loadFactory<T = any>(
   source: string,
 ): [LoaderFunction<T>, Imports] {
@@ -264,15 +321,15 @@ export default function loadFactory<T = any>(
 
   [imports, ast] = visitImports(ast);
 
-  const [result, argName] = getExportedFunction(ast);
-
   return [
     function(data: T, imports: string[]) {
-      const ast = clone(result);
+      let clonedAst = clone(ast);
 
-      replaceImports(ast, imports);
+      clonedAst = replaceImports(clonedAst, imports);
 
-      return recast.print(ast).code;
+      clonedAst = replaceData(clonedAst, data);
+
+      return recast.print(clonedAst).code;
     },
     imports,
   ];
