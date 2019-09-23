@@ -1,0 +1,18 @@
+{
+  "name": "samples-frontend-hello",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "scripts": {
+    "build:dev": "sporec --target=web",
+    "build": "sporec --target=web --mode=production"
+  },
+  "dependencies": {
+    "@sporejs/core": "^1.0.0",
+    "@sporejs/loader": "^1.0.0",
+    "@sporejs/frontend": "^1.0.0",
+    "@sporejs/compiler": "^1.0.0"
+  }
+}

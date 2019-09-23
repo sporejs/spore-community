@@ -1,6 +1,8 @@
 import webpack from 'webpack';
 import path from 'path';
 const TerserPlugin = require('terser-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { sync: syncResolve } = require('enhanced-resolve');
 
 interface Argv {
   entry: string;
@@ -13,6 +15,12 @@ interface Argv {
 export default function build(argv: Argv) {
   const entry = path.resolve(argv.entry);
   const output = argv.output && path.resolve(argv.output);
+
+  const htmlPath = syncResolve(
+    {},
+    path.resolve('.'),
+    '@sporejs/compiler/src/index.ejs',
+  );
   const compiler = webpack({
     mode: argv.mode,
     target: argv.target,
@@ -88,7 +96,15 @@ export default function build(argv: Argv) {
         }),
       ],
     },
-    plugins: [new webpack.ProgressPlugin()],
+    plugins: [new webpack.ProgressPlugin()].concat(
+      argv.target === 'web'
+        ? [
+            new HtmlWebpackPlugin({
+              template: htmlPath,
+            }),
+          ]
+        : [],
+    ),
   });
 
   if (argv.watch) {

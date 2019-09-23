@@ -1,3 +1,3 @@
 export default function(argv) {
-  console.log('Hello, ', argv.foo);
+  console.log('Hello, ' + argv.foo);
 }

@@ -154,10 +154,10 @@ class SporeCompiler {
     }
   }
 
-  async visitImports(obj: any) {
+  async visitImports(obj: any, locals: string[]) {
     if (Array.isArray(obj)) {
       for (const value of obj) {
-        await this.visitImports(value);
+        await this.visitImports(value, locals);
       }
       return;
     }
@@ -173,7 +173,7 @@ class SporeCompiler {
 
     for (const [key, value] of Object.entries(obj)) {
       if (value && typeof value === 'object') {
-        this.visitImports(value);
+        this.visitImports(value, locals);
       }
     }
 
@@ -205,12 +205,13 @@ class SporeCompiler {
         const loaderVar =
           this.importPrefix +
           (await this.addImport(schemaObj.loader, schemaContext));
-        defineCodeFor(
-          obj,
+        const id = locals.length;
+        locals.push(
           `eval(${loaderVar}(${JSON.stringify(obj)}, ${JSON.stringify(
             loaderImports,
           )}))`,
         );
+        defineCodeFor(obj, `__local_${id}`);
       } else {
         // Run loader on compiler side.
         // Should use javascript version instead of typescript version.
@@ -227,11 +228,15 @@ class SporeCompiler {
           schemaContext,
         )).replace(/\.tsx?$/, '.js');
 
+        let loader;
         if (exportName === '*') {
-          defineCodeFor(obj, require(loaderPath)(obj, loaderImports));
-          return;
+          loader = require(loaderPath);
+        } else {
+          loader = require(loaderPath)[exportName];
         }
-        defineCodeFor(obj, require(loaderPath)[exportName](obj, loaderImports));
+        const id = locals.length;
+        locals.push(loader(obj, loaderImports));
+        defineCodeFor(obj, `__local_${id}`);
       }
     }
   }
@@ -296,9 +301,11 @@ class SporeCompiler {
       return `export default ${renderObject(this.source)}`;
     }
 
+    const locals: string[] = [];
+
     // Step1: load objects;
     if (this.source && typeof this.source === 'object') {
-      await this.visitImports(this.source);
+      await this.visitImports(this.source, locals);
     }
 
     const codes: string[] = [
@@ -313,9 +320,14 @@ class SporeCompiler {
       this.renderImportGetters(codes);
     }
 
+    // Step3: write objects.
+    for (const [id, object] of locals.entries()) {
+      codes.push(`var __local_${id} = ${object};`);
+    }
+
     if (this.source.$definitions) {
       for (const [name, subObj] of Object.entries(this.source.$definitions)) {
-        codes.push(`export var ${name} = ${renderObject(subObj)}`);
+        codes.push(`export { ${renderObject(subObj)} as ${name} }`);
       }
     }
 
