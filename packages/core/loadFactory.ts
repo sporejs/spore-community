@@ -8,6 +8,7 @@ import {
   namedTypes as n,
   builders as b,
   eachField,
+  NodePath,
 } from 'ast-types';
 import renderObject, { SYMBOL_CODE } from './lib/renderObject';
 const parser = require('recast/parsers/babel');
@@ -261,6 +262,67 @@ function replaceImports(ast: ASTNode, imports: string[]): ASTNode {
   } as any);
 }
 
+function renderObjectAST(obj: any): ASTNode {
+  const source = renderObject(obj);
+  const rootAst = recast.parse('(' + source + ')');
+
+  return rootAst.program.body[0].expression;
+}
+
+function isTrueValue(ast: any) {
+  switch (ast.type) {
+    case 'Literal':
+      return !!ast.value;
+    case 'ObjectExpression':
+      return true;
+  }
+  return false;
+}
+
+function isFalseValue(ast: any) {
+  switch (ast.type) {
+    case 'Literal':
+      return !ast.value;
+    case 'Identifier':
+      return ast.name === 'undefined';
+  }
+  return false;
+}
+
+function isObjectMethod(ast: any, method: string) {
+  if (ast.type !== 'MemberExpression') {
+    return false;
+  }
+  return (
+    ast.object.type === 'Identifier' &&
+    ast.object.name === 'Object' &&
+    ast.property.type === 'Identifier' &&
+    ast.property.name === method
+  );
+}
+
+function enumObjectExpression(
+  arg: any,
+  mapper: (k: any, v: any) => any,
+): ASTNode | null {
+  if (arg.type !== 'ObjectExpression') {
+    return null;
+  }
+  if (arg.properties.some((v: any) => v.type !== 'Property')) {
+    return null;
+  }
+  return b.arrayExpression(
+    arg.properties.map((v: any) => {
+      let key = v.key;
+      let value = v.value;
+      if (key.type === 'Identifier') {
+        key = b.literal(key.name);
+      }
+      return mapper(key, value);
+    }),
+  );
+}
+
 function replaceData(ast: ASTNode, data: any): ASTNode {
   // phase 1: optimize data reference
   ast = visit(ast, {
@@ -280,14 +342,7 @@ function replaceData(ast: ASTNode, data: any): ASTNode {
     },
   });
 
-  // phase 2: optimize expressions
-  ast = visit(ast, {
-    visitExpression(path) {
-      this.traverse(path);
-    },
-  });
-
-  // phase 4: load datas.
+  // phase 2: load datas.
   ast = visit(ast, {
     visitDataReference(path: any) {
       let curr = data;
@@ -299,14 +354,145 @@ function replaceData(ast: ASTNode, data: any): ASTNode {
           curr = curr[key];
         }
       }
-      path.replace(
-        b.identifier(
-          `(${renderObject(curr)})` + rest.map(v => `.${v}`).join(''),
-        ),
-      );
+      let replace = renderObjectAST(curr);
+
+      for (const item of rest) {
+        replace = b.memberExpression(replace as any, b.identifier(item));
+      }
+      path.replace(replace);
       return false;
     },
   } as any);
+
+  // phase 3: optimize expressions、condition/repeat expression
+  ast = visit(ast, {
+    visitExpression(path) {
+      this.traverse(path);
+    },
+
+    visitIfStatement(path) {
+      this.traverse(path);
+      if (isTrueValue(path.node.test)) {
+        path.replace(path.node.consequent);
+      } else if (isFalseValue(path.node.test)) {
+        if (path.node.alternate) {
+          path.replace(path.node.alternate);
+        } else {
+          path.prune();
+        }
+      }
+    },
+
+    visitCallExpression(path) {
+      this.traverse(path);
+
+      // Precompute Object.entries
+      if (isObjectMethod(path.node.callee, 'entries')) {
+        const r = enumObjectExpression(
+          path.node.arguments[0],
+          (k: any, v: any) => {
+            return b.arrayExpression([k, v]);
+          },
+        );
+        r && path.replace(r);
+      } else if (isObjectMethod(path.node.callee, 'keys')) {
+        const r = enumObjectExpression(
+          path.node.arguments[0],
+          (k: any, v: any) => {
+            return b.arrayExpression(k);
+          },
+        );
+        r && path.replace(r);
+      } else if (isObjectMethod(path.node.callee, 'values')) {
+        const r = enumObjectExpression(
+          path.node.arguments[0],
+          (k: any, v: any) => {
+            return b.arrayExpression(v);
+          },
+        );
+        r && path.replace(r);
+      }
+    },
+
+    visitVariableDeclarator(path) {
+      this.traverse(path);
+
+      if (
+        n.ArrayPattern.check(path.node.id) &&
+        n.ArrayExpression.check(path.node.init)
+      ) {
+        // Unzip array pattern assignment
+
+        for (; path.node.init.elements.length > 0; ) {
+          const init = path.node.init.elements[0];
+          if (n.SpreadElement.check(init) || n.RestElement.check(init)) {
+            break;
+          }
+          const el = path.node.id.elements[0];
+          if (n.SpreadElement.check(el)) {
+            break;
+          }
+          path.node.id.elements.shift();
+          path.node.init.elements.shift();
+          if (!el) {
+            continue;
+          }
+          path.insertBefore(b.variableDeclarator(el, init));
+        }
+
+        if (path.node.init.elements.length <= 0) {
+          path.prune();
+        }
+      } else if (
+        n.ObjectPattern.check(path.node.id) &&
+        n.ObjectExpression.check(path.node.init)
+      ) {
+        // Unzip object pattern assignment
+      }
+    },
+
+    visitForOfStatement(path) {
+      this.traverse(path);
+      let right = path.node.right;
+      if (!n.ArrayExpression.check(right)) {
+        return;
+      }
+      if (
+        right.elements.some(
+          v => v && (v.type === 'RestElement' || v.type === 'SpreadElement'),
+        )
+      ) {
+        return;
+      }
+      let left = path.node.left;
+      let body = path.node.body;
+      if (!n.BlockStatement.check(body)) {
+        body = b.blockStatement([body]);
+      }
+
+      for (const item of right.elements) {
+        const clonedBody: any = clone(body);
+        let clonedLeft: any = clone(left);
+
+        if (clonedLeft.type === 'VariableDeclaration') {
+          // give initial value.
+          clonedLeft.declarations[0].init = item;
+        } else {
+          // build pattern assignment statement.
+          clonedLeft = b.expressionStatement(
+            b.assignmentExpresssion('=', clonedLeft, item),
+          );
+        }
+
+        clonedBody.body.unshift(clonedLeft);
+        path.insertBefore(clonedBody);
+        this.visitWithoutReset(new NodePath({ root: clonedBody }));
+      }
+
+      path.prune();
+    },
+  });
+
   return ast;
 }
 
@@ -329,7 +515,7 @@ export default function loadFactory<T = any>(
 
       clonedAst = replaceData(clonedAst, data);
 
-      return recast.print(clonedAst).code;
+      return '(' + recast.print(clonedAst).code + ')';
     },
     imports,
   ];
