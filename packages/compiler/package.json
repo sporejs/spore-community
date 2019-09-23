@@ -16,8 +16,11 @@
     "build:all": "run-s build:dev:webpack build"
   },
   "dependencies": {
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
     "@sporejs/core": "^1.0.0",
     "@sporejs/loader": "^1.0.0",
+    "babel-loader": "^8.0.6",
     "terser-webpack-plugin": "^2.1.0",
     "ts-loader": "^6.1.0",
     "webpack": "^4.40.2"

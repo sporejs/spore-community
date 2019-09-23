@@ -45,10 +45,29 @@ module.exports = () => ({
       },
       {
         test: /\.spore$/,
-        loader: '@sporejs/loader',
-        options: {
-          hotLoadLoader: false,
-        },
+        loaders: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                [
+                  '@babel/preset-env',
+                  {
+                    targets: {
+                      esmodules: true,
+                    },
+                  },
+                ],
+              ],
+            },
+          },
+          {
+            loader: '@sporejs/loader',
+            options: {
+              hotLoadLoader: false,
+            },
+          },
+        ],
       },
     ],
   },

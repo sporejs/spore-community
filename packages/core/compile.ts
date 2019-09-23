@@ -17,11 +17,6 @@ export interface CompileOptions {
   // file encoding for *every* file.
   encoding: string;
 
-  // Do not do code gen on compile time.
-  // Instead, we require loaders and run it at module initialization.
-  // This enable loader to be hot loaded when use with webpack/nodemon watch mode.
-  hotLoadLoader: boolean;
-
   // read file api.
   // Should use fs.readFileSync or fs.promises.readFile or something similar.
   readFile: (path: string, encoding: string) => string | Promise<string>;
@@ -42,7 +37,6 @@ let defaultResolver: Resolver | null = null;
 export const defaultOptions: CompileOptions = {
   context: '',
   encoding: 'utf-8',
-  hotLoadLoader: false,
   readFile: readFileSync,
   dirname,
   addDependency: () => {},
@@ -103,7 +97,7 @@ class SporeCompiler {
     this.filePath = filePath;
     this.source = source;
     this.options = options;
-    this.importPrefix = options.hotLoadLoader ? '__imports.' : '';
+    this.importPrefix = '';
   }
 
   // Resolve a schema path to get it's file path
@@ -281,11 +275,6 @@ class SporeCompiler {
     ];
     // Step2: write import codes.
     this.renderImports(codes);
-
-    if (this.options.hotLoadLoader) {
-      codes.push('var __imports = []');
-      this.renderImportGetters(codes);
-    }
 
     if (this.source.$definitions) {
       for (const [name, subObj] of Object.entries(this.source.$definitions)) {

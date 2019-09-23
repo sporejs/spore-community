@@ -36,7 +36,7 @@ export default function(data: CliApplication) {
         const { command, aliases, options, describe, handler } = cmd;
         let builder;
 
-        if (cmd.options) {
+        if (options) {
           builder = yargs => {
             for (const [key, value] of Object.entries(cmd.options)) {
               yargs.option(key, value);
