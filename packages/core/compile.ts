@@ -173,7 +173,7 @@ class SporeCompiler {
 
     for (const [key, value] of Object.entries(obj)) {
       if (value && typeof value === 'object') {
-        this.visitImports(value, locals);
+        await this.visitImports(value, locals);
       }
     }
 
