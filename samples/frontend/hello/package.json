@@ -6,6 +6,7 @@
   "author": "tdzl2003 <dengyun@meideng.net>",
   "license": "MIT",
   "scripts": {
+    "start": "start dist/index.html",
     "build:dev": "sporec --target=web",
     "build": "sporec --target=web --mode=production"
   },

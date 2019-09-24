@@ -31,6 +31,6 @@ export default function app(
     document.body.appendChild(el);
     ${codes.join('\n    ')}
     ${ReactDOM}.render((${renderObject(obj.tree, imports)}), el);
-  })()`;
+  })`;
   return ret;
 }
