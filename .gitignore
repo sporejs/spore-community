@@ -1,6 +1,6 @@
 /packages/**/*.js
 /packages/**/*.d.ts
-!webpack.config.js
+!webpack.config.*js
 node_modules
 yarn-error*.log
 .vscode

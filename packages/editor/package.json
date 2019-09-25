@@ -1,0 +1,27 @@
+{
+  "name": "@sporejs/editor",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:sporejs/spore-community.git",
+  "author": "tdzl2003 <dengyun@meideng.net>",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron index.js",
+    "build:main": "webpack --config webpack.config.main.js --mode production",
+    "build:main:dev": "webpack --config webpack.config.main.js --mode development",
+    "watch:main:dev": "webpack --config webpack.config.main.js --mode development -w",
+    "watch:renderer:dev": "webpack-dev-server --config webpack.config.renderer.js"
+  },
+  "dependencies": {
+    "@sporejs/core": "^1.0.0",
+    "electron": "^6.0.10",
+    "tslib": "^1.10.0"
+  },
+  "devDependencies": {
+    "html-webpack-plugin": "^3.2.0",
+    "terser-webpack-plugin": "^2.1.0",
+    "webpack": "^4.41.0",
+    "webpack-cli": "^3.3.9",
+    "webpack-dev-server": "^3.8.1"
+  }
+}
