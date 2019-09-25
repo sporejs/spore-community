@@ -2,7 +2,7 @@ import renderObject from '@sporejs/core/lib/renderObject';
 
 export default function app(
   obj: any,
-  imports: { React: string; ReactDOM: string; classnames: string },
+  imports: { ReactDOM: string; classnames: string },
 ) {
   const { ReactDOM, classnames } = imports;
 

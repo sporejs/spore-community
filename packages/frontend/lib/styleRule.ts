@@ -15,6 +15,21 @@ export function createClassName() {
   return 'N-' + nextId();
 }
 
+export function reactCSSToRaw(
+  styles: React.CSSProperties,
+  target?: any,
+): Partial<CSSStyleDeclaration> {
+  for (const key of Object.keys(styles)) {
+    let value: any = (styles as any)[key];
+    if (typeof value === 'number' && value && !isUnitless(key)) {
+      target[key] = '' + value + 'px';
+    } else {
+      target[key] = '' + value;
+    }
+  }
+  return target;
+}
+
 export function createClassRule(styles: Partial<React.CSSProperties>) {
   const className = createClassName();
   createRule(styles, `.${className}`);
@@ -22,20 +37,12 @@ export function createClassRule(styles: Partial<React.CSSProperties>) {
 }
 
 export function createRule(styles: Partial<React.CSSProperties>, rule: string) {
-  console.log(styles, rule);
   const index = styleSheet.insertRule(
     rule + ' {} ',
     styleSheet.cssRules.length,
   );
   const cssRule = styleSheet.rules[index] as CSSStyleRule;
-  for (const key of Object.keys(styles)) {
-    let value: any = (styles as any)[key];
-    if (typeof value === 'number' && value && !isUnitless(key)) {
-      (cssRule.style as any)[key] = '' + value + 'px';
-    } else {
-      (cssRule.style as any)[key] = '' + value;
-    }
-  }
+  reactCSSToRaw(styles, cssRule.style);
 }
 
 export function createStyleSheet<
